@@ -1,26 +1,18 @@
 from flask import Flask, jsonify, request
-import bcrypt
+from utils import encrypt_password
+from config import Config
+from extensions import db, migrate
 
 # __name__ == '__main__'
 app = Flask(__name__) 
+app.config.from_object(Config)
 
-users = []
-
-def encrypt_password(password):
-    """
-    Generar un salt
-    salt: es un número aleatorio que se genera y es concatenado al password,
-    este se usa por seguridad y para evitar ataques de fuerza bruta
-    """
-    salt = bcrypt.gensalt()
-    return bcrypt.hashpw(password.encode('utf-8'), salt)
-
-
-
+db.init_app(app)
+migrate.init_app(app, db)
 
 @app.route('/')
 def home():
-    return jsonify(users)
+    return jsonify([])
 
 """
 Vamos a hacer un ejemplo donde vamos a recibir la información 
@@ -31,7 +23,6 @@ def create_user():
     try:
         user_data = request.get_json()
         user_data['password'] = encrypt_password(user_data.get('password')).decode("utf-8")
-        users.append(user_data)
 
         return jsonify({
             "new_user": user_data
@@ -44,4 +35,6 @@ def create_user():
 
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(port=8000, debug=True)
